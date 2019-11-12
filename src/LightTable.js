@@ -12,15 +12,6 @@ var webglTest,
     numUsers = 1,
     dataStreamOn = false;
 
-    window.firstTimeViewingLT = getUrlParameter('redirect') === "" ? true : false;
-
-    function getUrlParameter(name) {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-        var results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    };
-
 /* public function */
 
 LightTable.init = function(_hideFn){
@@ -49,15 +40,6 @@ LightTable.init = function(_hideFn){
         simulateCommand("|cd github$");
         simulateCommand("ls$");
         simulateCommand("run github.exe$");
-        $(document).off();
-        $(".folder-container").off();
-    });
-
-    $("#lt-launch-mhn").click(function(){
-        $(this).find(".folder-big").css("background-color", "#fff");
-        simulateCommand("|cd seckcmhn$");
-        simulateCommand("ls$");
-        simulateCommand("run seckcmhn.exe$");
         $(document).off();
         $(".folder-container").off();
     });
@@ -97,19 +79,6 @@ LightTable.init = function(_hideFn){
     });
 
     initialized = true;
-
-    if(window.firstTimeViewingLT){
-        window.firstTimeViewingLT = false;
-        setTimeout(function(){
-            $("#lt-launch-mhn").find(".folder-big").css("background-color", "#fff");
-            simulateCommand("|cd seckcmhn$");
-            simulateCommand("ls$");
-            simulateCommand("run seckcmhn.exe$");
-            $(document).off();
-            $(".folder-container").off();
-        },1500);
-    }
-    
 };
 
 LightTable.show = function(cb){
@@ -549,12 +518,38 @@ function writeResponse(txt){
     $("#lt-command-lines").append("<div class='response'>&gt;&gt;encom-sh: " + txt + "</div>");
 }
 
-var currentDir = "encom_root";
+function Folder(name, parent,isfile) {
+	this.name = name;
+	this.parent = parent;
+	this.children='';
+	this.data = '';
+	this.file = isfile;
+}
+
+Folder.prototype.ls = function () {
+	var output = "";
+	for (var i = 0; i < this.children.length; i++){
+		output+=[
+			'<div class="ls">'+this.children[i].name+'</div>'
+		]
+	}
+	output.join('');
+}
+
+var currentDir = new Folder("encom_root", null,false);//"encom_root";
+
+var github= new Folder("github", currentDir,false);
+var test = new Folder("test", currentDir,false);
+var wikipedia = new Folder("wikipedia", currentDir,false);
+var bitcoin = new Folder("bitcoin", currentDir,false);
+
+currentDir.children = [github, test, wikipedia, bitcoin];
+
 
 function writePrompt(){
     $(".command-blinker").removeClass("blink").removeClass("command-blinker");
 
-    $("#lt-command-lines").append('<div class="command"><span class="prompt">encom-sh:' + currentDir + '$&nbsp;</span><span class="command-text"></span><span class="blink command-blinker">&nbsp;</span></div>');
+    $("#lt-command-lines").append('<div class="command"><span class="prompt">encom-sh:' + currentDir.name + '$&nbsp;</span><span class="command-text"></span><span class="blink command-blinker">&nbsp;</span></div>');
 }
 
 function writeLs(exec){
@@ -593,21 +588,70 @@ function writeLs(exec){
 
 function executeCommand(){
     var command = $(".command-text").last().text();
+    var args = this.value.split(' ').filter(function (val, i) {
+    	return val;
+    });
+    var command = args[0].toLowerCase();
+    args = args.splice(1);
 
-    if(command == "run seckcmhn.exe"){
-        if(currentDir == "seckcmhn"){
-            $(".ls-exec").addClass("ls-highlight")
-            $(".container-border").animate({opacity: 0}, 250);
+    switch (command) {
+    	case 'clear':
+    		break;
+    	case 'date':
+    		output = '<div class="ls">' + (new Date()).toLocaleString + '</div>'
+    		output.join('');
+    		$("#lt-command-lines").append(output);
+    		writePrompt()
+    		break;
+    	case 'whoami':
+    		output = '<div class="ls">' + "Clu" + '</div>'
+    		output.join('');
+    		$("#lt-command-lines").append(output);
+    		writePrompt()
+    		break;
+    	case 'touch':
+    		newfile = new Folder(args[0], currentDir,true)
+    		currentDir.children += newfile;
+    		writePrompt()
+    		break;
+    	case 'ls':
+    		currentDir.ls();
+    		writePrompt()
+    		return;
+    	case 'cd':
+    		if (args[0] == '..' && currentDir.parent != null) {
+    			currentDir = currentDir.parent;
+    		}
+    		if (currentDir.children.findindex(x => x.name == args[0])>=0) {
+    			currentDir = currentDir.children.findIndex(x => x.name == args[0]);
+    		}
+    		writePrompt()
+    		break;
+    	case 'mkdir':
+    		//add reserved words list
+    		if (args[0].length > 0) {
+    			newdir = new Folder(args[0], currentDir, false);
+    			currentDir.children += newdir;
+    		}
+    		writePrompt()
+    		break;
+    	case cp:
+    	case mv:
+    		var src = args[0];
+    		var dest = args[1];
+    		if (!src || !dest) {
+    			writeResponse("<span class='alert'>usage: </span>" + command + " source target");
+    			writePrompt();
+    			break;
+    		}
 
-            setTimeout(function(){
-                hideFn("seckc_mhn");
-            }, 250);
-        } else {
-            writeResponse("<span class='alert'>Error:</span> No such file");
-            writePrompt();
-        }
+    }
+    return;
 
-    }else if(command == "run github.exe"){
+
+
+
+    if(command == "run github.exe"){
         if(currentDir == "github"){
             $(".ls-exec").addClass("ls-highlight")
             $(".container-border").animate({opacity: 0}, 500);
@@ -646,14 +690,6 @@ function executeCommand(){
             writeResponse("<span class='alert'>Error:</span> No such file");
             writePrompt();
         }
-
-    } else if(command == "cd seckcmhn"){
-        $(".ls-github").addClass("ls-highlight")
-        currentDir = "seckcmhn";
-        $(".folder-label").removeClass("selected");
-        $("#lt-launch-github .folder-label").addClass("selected");
-        writeResponse("Changed directory to <span class='highlight'>seckcmhn</span>");
-        writePrompt();
 
     } else if(command == "cd github"){
         $(".ls-github").addClass("ls-highlight")

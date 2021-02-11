@@ -18,7 +18,7 @@
     "pusher.color": "~0.2.4",
     "request": "~2.82.0",
     "serve-favicon": "~2.4.5",
-    "three": "~0.66.2",
+    "three": "~0.125.0",
     "wikipedia-stream": "*",
     "snyk": "^1.244.0"
   },

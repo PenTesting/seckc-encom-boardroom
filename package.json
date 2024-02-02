@@ -16,7 +16,7 @@
     "moment-timezone": "0.0.6",
     "pleaserotate.js": "*",
     "pusher.color": "~0.2.4",
-    "request": "~2.82.0",
+    "request": "~2.88.2",
     "serve-favicon": "~2.4.5",
     "three": "~0.66.2",
     "wikipedia-stream": "*",
